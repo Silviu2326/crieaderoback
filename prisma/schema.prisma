@@ -1,0 +1,1325 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  role      String   // MANAGER, BREEDER, VETERINARIAN, CUSTOMER
+  status    String   @default("ACTIVE") // ACTIVE, INACTIVE
+  avatarUrl String?
+  phone     String?
+  address   String?
+  city      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastLogin DateTime?
+
+  // Relations
+  kennels          Kennel[]
+  veterinarian     Veterinarian?
+  customer         Customer?
+  auditLogs        AuditLog[]
+  createdMedical   MedicalRecord[] @relation("CreatedBy")
+  reservations     Reservation[]   @relation("CustomerReservations")
+  sentMessages     Message[]       @relation("SentMessages")
+  receivedMessages Message[]       @relation("ReceivedMessages")
+  createdTasks     Task[]          @relation("CreatedTasks")
+  assignedTasks    Task[]          @relation("AssignedTasks")
+
+  // Inspections
+  inspectionsCreated Inspection[] @relation("InspectionCreator")
+  inspectionsAsInspector Inspection[] @relation("InspectionInspector")
+
+  @@map("users")
+}
+
+model Kennel {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  logoUrl     String?
+  address     String?
+  city        String?
+  country     String?
+  phone       String?
+  email       String?
+  website     String?
+  status      String   @default("ACTIVE") // ACTIVE, INACTIVE
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  breederId           String
+  breeder             User                    @relation(fields: [breederId], references: [id])
+  dogs                Dog[]
+  litters             Litter[]
+  customers           Customer[]
+  veterinarians       KennelVet[]
+  reservations        Reservation[]
+  transactionCategories TransactionCategory[]
+  transactions        Transaction[]
+  invoices            Invoice[]
+  inventoryItems      InventoryItem[]
+  calendarEvents      CalendarEvent[]
+  documents           Document[]
+  documentTemplates   DocumentTemplate[]
+  tasks               Task[]
+  nutritionPlans      NutritionPlan[]
+  recipes             Recipe[]
+  carriers            Carrier[]
+  shipments           Shipment[]
+  transitDocuments    TransitDocument[]
+  employees           Employee[]
+  shifts              Shift[]
+  payrollEntries      PayrollEntry[]
+  trainingCourses     TrainingCourse[]
+  showEvents          ShowEvent[]
+  showDogs            ShowDog[]
+  showResults         ShowResult[]
+  showBudgetItems     ShowBudgetItem[]
+  geneticTests        GeneticTest[]
+  breedingPlans       BreedingPlan[]
+  reviews             Review[]
+  verificationRequests VerificationRequest[]
+  inspections          Inspection[]
+  clientReports        ClientReport[]
+
+  @@map("kennels")
+}
+
+model Veterinarian {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  license        String?
+  specialization String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kennels KennelVet[]
+  records MedicalRecord[]
+
+  @@map("veterinarians")
+}
+
+model KennelVet {
+  id         String   @id @default(uuid())
+  kennelId   String
+  vetId      String
+  assignedAt DateTime @default(now())
+
+  kennel Kennel        @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  vet    Veterinarian  @relation(fields: [vetId], references: [id], onDelete: Cascade)
+
+  @@unique([kennelId, vetId])
+  @@map("kennel_vets")
+}
+
+model Breed {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  group       String?
+  description String?
+  origin      String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  dogs           Dog[]
+  nutritionPlans NutritionPlan[]
+
+  @@map("breeds")
+}
+
+model Dog {
+  id            String   @id @default(uuid())
+  name          String
+  breedId       String
+  gender        String // MALE, FEMALE
+  birthDate     DateTime
+  color         String?
+  microchip     String?  @unique
+  pedigree      String?
+  price         Float?
+  status        String   @default("AVAILABLE") // AVAILABLE, RESERVED, SOLD, REPRODUCTIVE, RETIRED
+  visibility    String   @default("PRIVATE") // PUBLIC, PRIVATE
+  internalNotes String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  kennelId       String
+  kennel         Kennel          @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  breed          Breed           @relation(fields: [breedId], references: [id])
+  fatherId       String?
+  father         Dog?            @relation("FatherRelation", fields: [fatherId], references: [id])
+  childrenFather Dog[]           @relation("FatherRelation")
+  motherId       String?
+  mother         Dog?            @relation("MotherRelation", fields: [motherId], references: [id])
+  childrenMother Dog[]           @relation("MotherRelation")
+  photos         DogPhoto[]
+  medicalRecords MedicalRecord[]
+  reservations   Reservation[]
+  fatherLitters  Litter[]        @relation("FatherLitter")
+  motherLitters  Litter[]        @relation("MotherLitter")
+  litterPuppies  LitterPuppy[]
+  transactions   Transaction[]
+  invoiceItems   InvoiceItem[]
+  calendarEvents CalendarEvent[]
+  documents      Document[]
+  tasks          Task[]
+  dogNutritions  DogNutrition[]
+  nutritionLogs  NutritionLog[]
+  supplements    Supplement[]
+  foodIntolerances FoodIntolerance[]
+  clientReports  ClientReport[]
+  shipments      Shipment[]
+  showDogs       ShowDog[]
+  showResults    ShowResult[]
+  geneticTests   GeneticTest[]
+  fatherBreedingPlans BreedingPlan[] @relation("FatherBreedingPlan")
+  motherBreedingPlans BreedingPlan[] @relation("MotherBreedingPlan")
+  inspections         Inspection[]
+  inspectionEvaluations InspectionDogEvaluation[]
+  inspectionFindings  InspectionFinding[]
+
+  @@map("dogs")
+}
+
+model DogPhoto {
+  id        String   @id @default(uuid())
+  url       String
+  isMain    Boolean  @default(false)
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  dogId String
+  dog   Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+
+  @@map("dog_photos")
+}
+
+model Litter {
+  id          String   @id @default(uuid())
+  birthDate   DateTime
+  puppyCount  Int      @default(0)
+  deadPuppies Int      @default(0)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  kennelId String
+  kennel   Kennel        @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  fatherId String
+  father   Dog           @relation("FatherLitter", fields: [fatherId], references: [id])
+  motherId String
+  mother   Dog           @relation("MotherLitter", fields: [motherId], references: [id])
+  puppies  LitterPuppy[]
+  inspections Inspection[]
+
+  @@map("litters")
+}
+
+model LitterPuppy {
+  id        String   @id @default(uuid())
+  name      String?
+  gender    String? // MALE, FEMALE
+  color     String?
+  microchip String?
+  status    String   @default("AVAILABLE") // AVAILABLE, RESERVED, SOLD
+  notes     String?
+  createdAt DateTime @default(now())
+
+  litterId String
+  litter   Litter   @relation(fields: [litterId], references: [id], onDelete: Cascade)
+  dogId    String?  @unique
+  dog      Dog?     @relation(fields: [dogId], references: [id])
+
+  @@map("litter_puppies")
+}
+
+model MedicalRecord {
+  id            String   @id @default(uuid())
+  type          String // VACCINE, DEWORMING, CONSULTATION, EXAM, SURGERY, OTHER
+  date          DateTime
+  description   String
+  nextDate      DateTime?
+  attachmentUrl String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  dogId     String
+  dog       Dog          @relation(fields: [dogId], references: [id], onDelete: Cascade)
+  vetId     String
+  vet       Veterinarian @relation(fields: [vetId], references: [id])
+  createdBy String
+  creator   User         @relation("CreatedBy", fields: [createdBy], references: [id])
+
+  // Vaccine specific
+  vaccineName String?
+  vaccineLot  String?
+  vaccineLab  String?
+
+  // Deworming specific
+  dewormerProduct String?
+  weightAtDate    Float?
+
+  // Consultation/Surgery specific
+  diagnosis   String?
+  treatment   String?
+  postOpNotes String?
+
+  @@map("medical_records")
+}
+
+model Customer {
+  id         String   @id @default(uuid())
+  userId     String?  @unique
+  kennelId   String
+  firstName  String
+  lastName   String
+  email      String
+  phone      String?
+  address    String?
+  city       String?
+  notes      String?
+  isArchived Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  kennel       Kennel        @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id])
+  reservations Reservation[]
+  transactions Transaction[]
+  invoices     Invoice[]
+  calendarEvents CalendarEvent[]
+  documents    Document[]
+  tasks        Task[]
+  shipments    Shipment[]
+  reviews      Review[]
+  clientReports ClientReport[]
+
+  @@unique([kennelId, email])
+  @@map("customers")
+}
+
+model Reservation {
+  id             String   @id @default(uuid())
+  status         String   @default("PENDING") // PENDING, CONFIRMED, COMPLETED, CANCELLED
+  amount         Float?
+  deposit        Float?
+  notes          String?
+  requestMessage String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  completedAt    DateTime?
+
+  // Relations
+  kennelId   String
+  kennel     Kennel        @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  dogId      String
+  dog        Dog           @relation(fields: [dogId], references: [id])
+  customerId String
+  customer   Customer      @relation(fields: [customerId], references: [id])
+  userId     String?
+  user       User?         @relation("CustomerReservations", fields: [userId], references: [id])
+  transaction Transaction?
+  inspections Inspection[]
+
+  @@map("reservations")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  action    String
+  entity    String
+  entityId  String?
+  oldData   String?
+  newData   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// ==================== FINANCE SYSTEM ====================
+
+model TransactionCategory {
+  id          String   @id @default(uuid())
+  name        String
+  type        String // INCOME, EXPENSE
+  color       String   @default("#0071e3")
+  icon        String?
+  description String?
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  kennelId String?
+  kennel   Kennel? @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  transactions Transaction[]
+
+  @@unique([kennelId, name, type])
+  @@map("transaction_categories")
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  type        String // INCOME, EXPENSE
+  amount      Float
+  date        DateTime
+  description String
+  notes       String?
+  status      String   @default("COMPLETED") // PENDING, COMPLETED, CANCELLED
+  paymentMethod String? // CASH, CARD, TRANSFER, OTHER
+  reference   String? // Número de referencia/factura
+  attachmentUrl String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  kennelId String
+  kennel   Kennel @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   TransactionCategory @relation(fields: [categoryId], references: [id])
+
+  // Related entities (optional)
+  dogId String?
+  dog   Dog?    @relation(fields: [dogId], references: [id])
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  reservationId String? @unique
+  reservation   Reservation? @relation(fields: [reservationId], references: [id])
+
+  invoiceId String?
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id])
+
+  createdBy String
+
+  @@map("transactions")
+}
+
+model Invoice {
+  id          String   @id @default(uuid())
+  number      String   @unique
+  issueDate   DateTime
+  dueDate     DateTime?
+  subtotal    Float
+  taxRate     Float    @default(21.0)
+  taxAmount   Float
+  total       Float
+  status      String   @default("PENDING") // PENDING, PAID, OVERDUE, CANCELLED
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  kennelId String
+  kennel   Kennel @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  items    InvoiceItem[]
+  transactions Transaction[]
+
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String @id @default(uuid())
+  description String
+  quantity    Int    @default(1)
+  unitPrice   Float
+  total       Float
+
+  // Relations
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  // Optional relation to dog
+  dogId String?
+  dog   Dog?    @relation(fields: [dogId], references: [id])
+
+  @@map("invoice_items")
+}
+
+model InventoryItem {
+  id          String   @id @default(uuid())
+  name        String
+  category    String // FOOD, MEDICINE, SUPPLY, EQUIPMENT, OTHER
+  description String?
+  quantity    Float
+  unit        String // kg, units, liters, etc.
+  minStock    Float    @default(0)
+  cost        Float?
+  supplier    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  kennelId String
+  kennel   Kennel @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  movements InventoryMovement[]
+  recipeIngredients RecipeIngredient[]
+
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id          String   @id @default(uuid())
+  type        String // IN, OUT
+  quantity    Float
+  reason      String? // SALE, PURCHASE, ADJUSTMENT, USE, EXPIRED
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  itemId String
+  item   InventoryItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  @@map("inventory_movements")
+}
+
+// ==================== CALENDAR SYSTEM ====================
+
+model CalendarEvent {
+  id          String   @id @default(uuid())
+  title       String
+  type        String   // VACCINE, DEWORMING, HEAT, BIRTH, APPOINTMENT, OTHER
+  date        DateTime
+  endDate     DateTime?
+  allDay      Boolean  @default(true)
+  reminderDays Int     @default(1) // Días antes para recordatorio
+  status      String   @default("PENDING") // PENDING, COMPLETED, CANCELLED
+  notes       String?
+  location    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  kennelId String
+  kennel   Kennel @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  // Optional relations to other entities
+  dogId   String?
+  dog     Dog?    @relation(fields: [dogId], references: [id], onDelete: SetNull)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  litterId String?
+
+  // Created by
+  createdBy String
+
+  @@map("calendar_events")
+}
+
+// ==================== DOCUMENT SYSTEM ====================
+
+model Document {
+  id          String   @id @default(uuid())
+  type        String   // PEDIGREE, CONTRACT, HEALTH_CERT, VACCINE_CERT, MICROCHIP, PHOTO, INVOICE, OTHER
+  name        String
+  description String?
+  url         String   // URL del archivo
+  fileName    String?  // Nombre original del archivo
+  fileSize    Int?     // Tamaño en bytes
+  mimeType    String?  // Tipo MIME
+  isPublic    Boolean  @default(false)
+  tags        String?  // Tags separados por comas
+  issuedDate  DateTime? // Fecha de emisión del documento
+  expiryDate  DateTime? // Fecha de expiración (para certificados)
+  status      String   @default("ACTIVE") // ACTIVE, EXPIRED, REVOKED
+  version     Int      @default(1) // Para control de versiones
+  metadata    String?  // JSON con datos adicionales específicos del tipo
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  kennelId String
+  kennel   Kennel @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  // Optional relations
+  dogId   String?
+  dog     Dog?    @relation(fields: [dogId], references: [id], onDelete: SetNull)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  // Para pedigrees: perros padre y madre
+  fatherDogId String?
+  motherDogId String?
+
+  // Para contratos: datos adicionales
+  contractData String? // JSON con términos del contrato, precio, etc.
+
+  // Uploaded by
+  uploadedBy String
+
+  // Inspection related
+  inspectionId String?
+  inspection   Inspection? @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
+}
+
+// Modelo para plantillas de documentos
+model DocumentTemplate {
+  id          String   @id @default(uuid())
+  name        String
+  type        String   // CONTRACT_TEMPLATE, HEALTH_TEMPLATE, etc.
+  content     String   // Contenido HTML o texto de la plantilla
+  variables   String?  // Variables disponibles en formato JSON
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  kennelId String
+  kennel   Kennel @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  @@map("document_templates")
+}
+
+// ==================== MESSAGING SYSTEM ====================
+
+model Message {
+  id        String   @id @default(uuid())
+  content   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Sender relation
+  senderId String
+  sender   User   @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+
+  // Receiver relation
+  receiverId String
+  receiver   User   @relation("ReceivedMessages", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  // Optional: related to a dog, reservation, etc.
+  dogId String?
+
+  @@index([senderId, receiverId])
+  @@index([receiverId, createdAt])
+  @@map("messages")
+}
+
+// ==================== TASK SYSTEM ====================
+
+model Task {
+  id             String    @id @default(uuid())
+  title          String
+  description    String?
+  status         String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, CANCELLED
+  priority       String    @default("MEDIUM")  // LOW, MEDIUM, HIGH
+  dueDate        DateTime?
+  tags           String?
+  recurrenceRule String?
+  isTemplate     Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  kennelId   String
+  kennel     Kennel    @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  createdBy  String
+  creator    User      @relation("CreatedTasks", fields: [createdBy], references: [id])
+
+  assignedTo String?
+  assignee   User?     @relation("AssignedTasks", fields: [assignedTo], references: [id])
+
+  dogId      String?
+  dog        Dog?      @relation(fields: [dogId], references: [id], onDelete: SetNull)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  litterId   String?
+
+  sourceInspection Inspection? @relation("InspectionFollowUp")
+
+  @@index([kennelId, status])
+  @@index([kennelId, isTemplate])
+  @@index([assignedTo])
+  @@map("tasks")
+}
+
+// ==================== NUTRITION SYSTEM ====================
+
+model NutritionPlan {
+  id              String   @id @default(uuid())
+  name            String
+  dietType        String   // DRY, WET, BARF, HOME_COOKED, MIXED
+  targetBreedId   String?
+  minAgeMonths    Int?
+  maxAgeMonths    Int?
+  minWeightKg     Float?
+  maxWeightKg     Float?
+  activityLevel   String   // LOW, MODERATE, HIGH, VERY_HIGH
+  dailyGramsPerKg Float    // gramos recomendados por kg de peso corporal
+  instructions    String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  kennel      Kennel         @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  kennelId    String
+  targetBreed Breed?         @relation(fields: [targetBreedId], references: [id], onDelete: SetNull)
+  dogDiets    DogNutrition[]
+  logs        NutritionLog[]
+
+  @@map("nutrition_plans")
+}
+
+model DogNutrition {
+  id             String    @id @default(uuid())
+  startDate      DateTime  @default(now())
+  endDate        DateTime?
+  currentWeightKg Float
+  notes          String?
+  isActive       Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  dog    Dog           @relation(fields: [dogId], references: [id], onDelete: Cascade)
+  dogId  String
+  plan   NutritionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planId String
+  recipe Recipe?       @relation(fields: [recipeId], references: [id], onDelete: SetNull)
+  recipeId String?
+
+  @@map("dog_nutritions")
+}
+
+model NutritionLog {
+  id             String   @id @default(uuid())
+  date           DateTime @default(now())
+  gramsServed    Float
+  gramsLeftovers Float    @default(0)
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  dog    Dog           @relation(fields: [dogId], references: [id], onDelete: Cascade)
+  dogId  String
+  plan   NutritionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planId String
+
+  @@map("nutrition_logs")
+}
+
+model Supplement {
+  id        String    @id @default(uuid())
+  name      String
+  dosage    String
+  frequency String    // ej: "1 vez al día", "2 veces a la semana"
+  startDate DateTime  @default(now())
+  endDate   DateTime?
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  dog   Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+  dogId String
+
+  @@map("supplements")
+}
+
+// ==================== LOGISTICS SYSTEM ====================
+
+model Carrier {
+  id             String   @id @default(uuid())
+  name           String
+  contactName    String?
+  phone          String?
+  email          String?
+  isCertified    Boolean  @default(false)
+  certifications String?  // JSON string array
+  rating         Float    @default(0)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  kennelId   String
+  kennel     Kennel      @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  shipments  Shipment[]
+
+  @@map("carriers")
+}
+
+model Shipment {
+  id                  String   @id @default(uuid())
+  trackingNumber      String   @unique
+  origin              String
+  destination         String
+  status              String   // SCHEDULED, IN_TRANSIT, DELIVERED, CANCELLED
+  mode                String   // GROUND, AIR, SEA
+  scheduledDate       DateTime
+  estimatedArrival    DateTime?
+  actualArrival       DateTime?
+  cost                Float?
+  notes               String?
+  externalTrackingUrl String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  kennelId    String
+  kennel      Kennel           @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  carrierId   String?
+  carrier     Carrier?         @relation(fields: [carrierId], references: [id], onDelete: SetNull)
+  dogId       String?
+  dog         Dog?             @relation(fields: [dogId], references: [id], onDelete: SetNull)
+  customerId  String?
+  customer    Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  documents   TransitDocument[]
+  inspections Inspection[]
+
+  @@map("shipments")
+}
+
+model TransitDocument {
+  id          String   @id @default(uuid())
+  name        String
+  type        String   // PASSPORT, SANITEF, HEALTH_CERT, CITES, OTHER
+  url         String?
+  issuedDate  DateTime?
+  expiryDate  DateTime?
+  isValid     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shipmentId  String
+  shipment    Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  kennelId    String
+  kennel      Kennel   @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  @@map("transit_documents")
+}
+
+// ==================== STAFF SYSTEM ====================
+
+model Employee {
+  id         String   @id @default(uuid())
+  firstName  String
+  lastName   String
+  email      String
+  phone      String?
+  role       String   // CARETAKER, VETERINARIAN, RECEPTIONIST, HANDLER, GROOMER, MANAGER
+  status     String   @default("ACTIVE") // ACTIVE, INACTIVE, ON_LEAVE
+  hourlyRate Float?
+  hireDate   DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  kennelId   String
+  kennel     Kennel          @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  shifts     Shift[]
+  payroll    PayrollEntry[]
+  courses    TrainingCourse[]
+
+  @@map("employees")
+}
+
+model Shift {
+  id        String   @id @default(uuid())
+  date      DateTime
+  startTime String
+  endTime   String
+  type      String   // MORNING, AFTERNOON, NIGHT
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  kennelId   String
+  kennel     Kennel   @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  @@map("shifts")
+}
+
+model PayrollEntry {
+  id            String   @id @default(uuid())
+  periodStart   DateTime
+  periodEnd     DateTime
+  regularHours  Float
+  overtimeHours Float    @default(0)
+  hourlyRate    Float
+  overtimeRate  Float
+  bonus         Float?
+  deductions    Float?
+  totalPay      Float
+  status        String   @default("DRAFT") // DRAFT, APPROVED, PAID
+  paidAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  kennelId   String
+  kennel     Kennel   @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  @@map("payroll_entries")
+}
+
+model TrainingCourse {
+  id             String   @id @default(uuid())
+  name           String
+  provider       String?
+  completedDate  DateTime?
+  expiryDate     DateTime?
+  certificateUrl String?
+  status         String   @default("PENDING") // PENDING, COMPLETED, EXPIRED
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  kennelId   String
+  kennel     Kennel   @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  @@map("training_courses")
+}
+
+// ==================== SHOWS SYSTEM ====================
+
+model ShowEvent {
+  id          String   @id @default(uuid())
+  name        String
+  organizer   String?
+  location    String
+  startDate   DateTime
+  endDate     DateTime?
+  status      String   @default("UPCOMING") // UPCOMING, ONGOING, COMPLETED, CANCELLED
+  entryFee    Float?
+  federation  String?
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  kennelId String
+  kennel   Kennel        @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  showDogs ShowDog[]
+  results  ShowResult[]
+  budget   ShowBudgetItem[]
+
+  @@map("show_events")
+}
+
+model ShowDog {
+  id          String   @id @default(uuid())
+  status      String   @default("REGISTERED") // REGISTERED, CONFIRMED, WITHDRAWN, COMPETED
+  className   String?
+  handlerName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  showId   String
+  show     ShowEvent @relation(fields: [showId], references: [id], onDelete: Cascade)
+  dogId    String
+  dog      Dog       @relation(fields: [dogId], references: [id], onDelete: Cascade)
+  kennelId String
+  kennel   Kennel    @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  @@map("show_dogs")
+}
+
+model ShowResult {
+  id          String   @id @default(uuid())
+  category    String   // BIS, BOB, BOS, G1, G2, G3, G4, RES, JCAC, CAC, CACIB
+  placement   Int?
+  points      Int?
+  titleEarned String?
+  judgeName   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  showId   String
+  show     ShowEvent @relation(fields: [showId], references: [id], onDelete: Cascade)
+  dogId    String
+  dog      Dog       @relation(fields: [dogId], references: [id], onDelete: Cascade)
+  kennelId String
+  kennel   Kennel    @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  @@map("show_results")
+}
+
+model ShowBudgetItem {
+  id            String   @id @default(uuid())
+  concept       String
+  estimatedCost Float
+  actualCost    Float?
+  category      String   // ENTRY, TRAVEL, LODGING, GROOMING, OTHER
+  paid          Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  showId   String
+  show     ShowEvent @relation(fields: [showId], references: [id], onDelete: Cascade)
+  kennelId String
+  kennel   Kennel    @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  @@map("show_budget_items")
+}
+
+// ==================== GENETICS SYSTEM ====================
+
+model GeneticTest {
+  id             String   @id @default(uuid())
+  testName       String
+  labName        String?
+  result         String   // CLEAR, CARRIER, AFFECTED, PENDING
+  testDate       DateTime
+  certificateUrl String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  dog     Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+  dogId   String
+  kennel  Kennel @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  kennelId String
+
+  @@map("genetic_tests")
+}
+
+model BreedingPlan {
+  id            String   @id @default(uuid())
+  name          String
+  plannedDate   DateTime?
+  predictedCoi  Float?
+  goal          String?
+  status        String   @default("PLANNED") // PLANNED, APPROVED, EXECUTED, CANCELLED
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  father   Dog    @relation("FatherBreedingPlan", fields: [fatherId], references: [id], onDelete: Cascade)
+  fatherId String
+  mother   Dog    @relation("MotherBreedingPlan", fields: [motherId], references: [id], onDelete: Cascade)
+  motherId String
+  kennel   Kennel @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  kennelId String
+  inspections Inspection[]
+
+  @@map("breeding_plans")
+}
+
+// ==================== REVIEWS SYSTEM ====================
+
+model Review {
+  id               String   @id @default(uuid())
+  rating           Int
+  comment          String?
+  reply            String?
+  status           String   @default("PENDING") // PENDING, PUBLISHED, REJECTED
+  verifiedPurchase Boolean  @default(false)
+  source           String   @default("INTERNAL") // INTERNAL, TRUSTPILOT, GOOGLE
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerId String?
+  kennel     Kennel    @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  kennelId   String
+
+  @@map("reviews")
+}
+
+model VerificationRequest {
+  id         String   @id @default(uuid())
+  status     String   @default("NOT_STARTED") // NOT_STARTED, IN_PROGRESS, VERIFIED, REJECTED
+  submittedAt DateTime?
+  reviewedAt DateTime?
+  notes      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  kennel  Kennel @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  kennelId String
+
+  steps VerificationStep[]
+
+  @@map("verification_requests")
+}
+
+model VerificationStep {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  status      String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, REJECTED
+  order       Int
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  verificationRequest   VerificationRequest @relation(fields: [verificationRequestId], references: [id], onDelete: Cascade)
+  verificationRequestId String
+
+  @@map("verification_steps")
+}
+
+// ==================== INSPECTIONS SYSTEM ====================
+
+model Inspection {
+  id              String   @id @default(uuid())
+  title           String
+  type            String   // HEALTH, FINANCIAL, FACILITY, DOCUMENTARY, PRE_PURCHASE, LITTER, BREEDING, WELFARE, TRANSPORT
+  status          String   @default("SCHEDULED") // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+
+  // Fechas
+  scheduledDate   DateTime
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  // Resultado global
+  overallResult   String?  // PASS, CONDITIONAL, FAIL
+  overallScore    Int?
+  overallNotes    String?
+
+  // Relaciones con entidades del sistema
+  kennelId        String
+  kennel          Kennel   @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+
+  dogId           String?
+  dog             Dog?     @relation(fields: [dogId], references: [id], onDelete: SetNull)
+
+  litterId        String?
+  litter          Litter?  @relation(fields: [litterId], references: [id], onDelete: SetNull)
+
+  reservationId   String?
+  reservation     Reservation? @relation(fields: [reservationId], references: [id])
+
+  shipmentId      String?
+  shipment        Shipment? @relation(fields: [shipmentId], references: [id])
+
+  breedingPlanId  String?
+  breedingPlan    BreedingPlan? @relation(fields: [breedingPlanId], references: [id])
+
+  // Asignacion
+  inspectorId     String
+  inspector       User     @relation("InspectionInspector", fields: [inspectorId], references: [id])
+  creatorId       String
+  creator         User     @relation("InspectionCreator", fields: [creatorId], references: [id])
+
+  // Componentes de la inspeccion
+  checklistItems  InspectionChecklistItem[]
+  dogEvaluations  InspectionDogEvaluation[]
+  findings        InspectionFinding[]
+  documents       Document[]
+
+  // Seguimiento
+  followUpTaskId  String?  @unique
+  followUpTask    Task?    @relation("InspectionFollowUp", fields: [followUpTaskId], references: [id])
+  followUpDate    DateTime?
+
+  // Auditoria
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([kennelId])
+  @@index([dogId])
+  @@index([litterId])
+  @@index([inspectorId])
+  @@index([status])
+  @@index([type])
+  @@index([scheduledDate])
+  @@map("inspections")
+}
+
+model InspectionChecklistItem {
+  id              String   @id @default(uuid())
+  inspectionId    String
+  inspection      Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+
+  category        String
+  itemText        String
+  order           Int
+  isCritical      Boolean  @default(false)
+
+  result          String?  // PASS, FAIL, N/A
+  notes           String?
+  score           Int?
+  photoUrls       String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("inspection_checklist_items")
+}
+
+model InspectionDogEvaluation {
+  id              String   @id @default(uuid())
+  inspectionId    String
+  inspection      Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+
+  dogId           String
+  dog             Dog      @relation(fields: [dogId], references: [id])
+
+  bodyCondition   String?  // THIN, UNDERWEIGHT, IDEAL, OVERWEIGHT, OBESE
+  coatCondition   String?  // POOR, FAIR, GOOD, EXCELLENT
+  eyeCondition    String?  // NORMAL, DISCHARGE, INFLAMMATION, CLOUDY
+  earCondition    String?  // NORMAL, DIRTY, INFLAMMATION, INFECTION
+  mobility        String?  // NORMAL, LIMPING, STIFF, AVOIDANCE
+  behavior        String?  // CALM, FEARFUL, AGGRESSIVE, ENERGETIC, LETHARGIC
+
+  weight          Float?
+  temperature     Float?
+
+  observations    String?
+  needsFollowUp   Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+
+  @@map("inspection_dog_evaluations")
+}
+
+model InspectionFinding {
+  id              String   @id @default(uuid())
+  inspectionId    String
+  inspection      Inspection @relation(fields: [inspectionId], references: [id], onDelete: Cascade)
+
+  severity        String   // LOW, MEDIUM, HIGH, CRITICAL
+  category        String   // HEALTH, DOCUMENTATION, FACILITY, FINANCIAL, BEHAVIOR, OTHER
+  description     String
+
+  dogId           String?
+  dog             Dog?     @relation(fields: [dogId], references: [id])
+
+  correctiveAction String?
+  resolvedAt      DateTime?
+  resolvedBy      String?
+
+  createdAt       DateTime @default(now())
+
+  @@map("inspection_findings")
+}
+
+// ==================== RECIPES ====================
+
+model Recipe {
+  id           String   @id @default(uuid())
+  name         String
+  dietType     String   // DRY, WET, BARF, HOME_COOKED, MIXED
+  portions     Int      @default(1)
+  instructions String?
+  notes        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  kennel      Kennel           @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  kennelId    String
+  ingredients RecipeIngredient[]
+  dogDiets    DogNutrition[]
+
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id            String  @id @default(uuid())
+  name          String
+  quantity      Float
+  unit          String  // g, kg, ml, units
+  costPerUnit   Float?
+  notes         String?
+
+  recipe   Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  recipeId String
+
+  inventoryItem   InventoryItem? @relation(fields: [inventoryItemId], references: [id], onDelete: SetNull)
+  inventoryItemId String?
+
+  @@map("recipe_ingredients")
+}
+
+// ==================== FOOD INTOLERANCES ====================
+
+model FoodIntolerance {
+  id       String   @id @default(uuid())
+  foodName String
+  severity String   // MILD, MODERATE, SEVERE, LIFE_THREATENING
+  symptoms String?
+  notes    String?
+  isActive Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dog   Dog    @relation(fields: [dogId], references: [id], onDelete: Cascade)
+  dogId String
+
+  reactions IntoleranceReaction[]
+
+  @@map("food_intolerances")
+}
+
+model IntoleranceReaction {
+  id         String   @id @default(uuid())
+  date       DateTime @default(now())
+  symptoms   String
+  severity   String   // MILD, MODERATE, SEVERE, LIFE_THREATENING
+  notes      String?
+  resolvedAt DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  intolerance   FoodIntolerance @relation(fields: [intoleranceId], references: [id], onDelete: Cascade)
+  intoleranceId String
+
+  @@map("intolerance_reactions")
+}
+
+// ==================== CLIENT REPORTS ====================
+
+model ClientReport {
+  id              String   @id @default(uuid())
+  title           String
+  generatedAt     DateTime @default(now())
+  reportType      String   @default("HANDOVER") // HANDOVER, NUTRITION, HEALTH
+  status          String   @default("DRAFT") // DRAFT, FINALIZED, SENT
+  notes           String?
+  recommendations String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  kennel    Kennel    @relation(fields: [kennelId], references: [id], onDelete: Cascade)
+  kennelId  String
+
+  dog       Dog       @relation(fields: [dogId], references: [id], onDelete: Cascade)
+  dogId     String
+
+  customer  Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerId String?
+
+  @@map("client_reports")
+}
