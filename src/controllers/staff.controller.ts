@@ -5,8 +5,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 async function checkKennelAccess(user: any, kennelId: string) {
   if (user.role === 'MANAGER') return true;
   if (user.role === 'BREEDER') {
-    const kennel = await prisma.kennel.findUnique({ where: { id: kennelId }, select: { breederId: true } });
-    return kennel?.breederId === user.id;
+    return kennelId === user.kennelId;
   }
   return false;
 }
@@ -23,10 +22,13 @@ export const listEmployees = asyncHandler(async (req: Request, res: Response) =>
   if (status) where.status = status as string;
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({ where: { breederId: user.id }, select: { id: true } });
-    const myKennelIds = myKennels.map(k => k.id);
-    if (kennelId && !myKennelIds.includes(kennelId as string)) return res.status(403).json({ error: 'Access denied' });
-    if (!kennelId) where.kennelId = { in: myKennelIds };
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (!kennelId) {
+      where.kennelId = user.kennelId;
+    }
   }
 
   const employees = await prisma.employee.findMany({ where, orderBy: { createdAt: 'desc' } });
@@ -94,10 +96,13 @@ export const listShifts = asyncHandler(async (req: Request, res: Response) => {
   }
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({ where: { breederId: user.id }, select: { id: true } });
-    const myKennelIds = myKennels.map(k => k.id);
-    if (kennelId && !myKennelIds.includes(kennelId as string)) return res.status(403).json({ error: 'Access denied' });
-    if (!kennelId) where.kennelId = { in: myKennelIds };
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (!kennelId) {
+      where.kennelId = user.kennelId;
+    }
   }
 
   const shifts = await prisma.shift.findMany({
@@ -165,10 +170,13 @@ export const listPayroll = asyncHandler(async (req: Request, res: Response) => {
   if (status) where.status = status as string;
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({ where: { breederId: user.id }, select: { id: true } });
-    const myKennelIds = myKennels.map(k => k.id);
-    if (kennelId && !myKennelIds.includes(kennelId as string)) return res.status(403).json({ error: 'Access denied' });
-    if (!kennelId) where.kennelId = { in: myKennelIds };
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (!kennelId) {
+      where.kennelId = user.kennelId;
+    }
   }
 
   const payroll = await prisma.payrollEntry.findMany({
@@ -251,10 +259,13 @@ export const listTraining = asyncHandler(async (req: Request, res: Response) => 
   if (employeeId) where.employeeId = employeeId as string;
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({ where: { breederId: user.id }, select: { id: true } });
-    const myKennelIds = myKennels.map(k => k.id);
-    if (kennelId && !myKennelIds.includes(kennelId as string)) return res.status(403).json({ error: 'Access denied' });
-    if (!kennelId) where.kennelId = { in: myKennelIds };
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (!kennelId) {
+      where.kennelId = user.kennelId;
+    }
   }
 
   const courses = await prisma.trainingCourse.findMany({

@@ -315,24 +315,39 @@ export const getKennelStats = asyncHandler(async (req: Request, res: Response) =
   });
 });
 
-// Get my kennels (for Breeder their own, for Manager all)
-export const getMyKennels = asyncHandler(async (req: Request, res: Response) => {
+// Get my kennel (single kennel for the authenticated user)
+export const getMyKennel = asyncHandler(async (req: Request, res: Response) => {
   const user = req.user!;
 
-  // Managers see all kennels, Breeders see only their own
-  const where = user.role === 'MANAGER' ? {} : { breederId: user.id };
+  if (!user.kennelId) {
+    return res.status(404).json({ error: 'Kennel not found' });
+  }
 
-  const kennels = await prisma.kennel.findMany({
-    where,
+  const kennel = await prisma.kennel.findUnique({
+    where: { id: user.kennelId },
     include: {
+      breeder: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+        },
+      },
       _count: {
         select: {
           dogs: true,
           customers: true,
+          litters: true,
+          reservations: true,
         },
       },
     },
   });
 
-  res.json({ kennels });
+  if (!kennel) {
+    return res.status(404).json({ error: 'Kennel not found' });
+  }
+
+  res.json({ kennel });
 });

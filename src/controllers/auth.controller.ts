@@ -7,14 +7,14 @@ import { sendPasswordResetEmail, sendWelcomeEmail } from '../utils/email';
 import { asyncHandler } from '../middleware/errorHandler';
 import crypto from 'crypto';
 
-// Register (only for CUSTOMER role, self-registration)
+// Register (self-registration for breeders)
 export const register = asyncHandler(async (req: Request, res: Response) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { email, password, firstName, lastName, phone } = req.body;
+  const { email, password, firstName, lastName, phone, kennelName } = req.body;
 
   // Check if user exists
   const existingUser = await prisma.user.findUnique({
@@ -28,57 +28,81 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
   // Hash password
   const hashedPassword = await bcrypt.hash(password, 12);
 
-  // Create user
-  const user = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      firstName,
-      lastName,
-      phone,
-      role: 'CUSTOMER',
-      status: 'ACTIVE',
-    },
-    select: {
-      id: true,
-      email: true,
-      firstName: true,
-      lastName: true,
-      role: true,
-      status: true,
-      createdAt: true,
-    },
-  });
+  // Generate slug for kennel
+  const baseSlug = (kennelName || `${firstName}-criadero`)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 
-  // Create customer record
-  await prisma.customer.create({
-    data: {
-      userId: user.id,
-      firstName,
-      lastName,
-      email,
-      phone,
-      kennelId: '', // Will be assigned when making a reservation
-    },
+  let slug = baseSlug;
+  let counter = 1;
+  let existingSlug = await prisma.kennel.findUnique({ where: { slug } });
+  while (existingSlug) {
+    slug = `${baseSlug}-${counter}`;
+    existingSlug = await prisma.kennel.findUnique({ where: { slug } });
+    counter++;
+  }
+
+  // Create user and kennel in transaction
+  const result = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        firstName,
+        lastName,
+        phone,
+        role: 'BREEDER',
+        status: 'ACTIVE',
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        status: true,
+        createdAt: true,
+      },
+    });
+
+    const kennel = await tx.kennel.create({
+      data: {
+        name: kennelName || `Criadero de ${firstName}`,
+        slug,
+        breederId: user.id,
+        status: 'ACTIVE',
+        isPublic: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+      },
+    });
+
+    return { user, kennel };
   });
 
   // Generate tokens
   const token = generateToken({
-    userId: user.id,
-    email: user.email,
-    role: user.role,
-    firstName: user.firstName,
-    lastName: user.lastName,
+    userId: result.user.id,
+    email: result.user.email,
+    role: result.user.role,
+    firstName: result.user.firstName,
+    lastName: result.user.lastName,
   });
 
-  const refreshToken = generateRefreshToken(user.id);
+  const refreshToken = generateRefreshToken(result.user.id);
 
   // Send welcome email
   await sendWelcomeEmail(email, `${firstName} ${lastName}`);
 
   res.status(201).json({
     message: 'User registered successfully',
-    user,
+    user: { ...result.user, kennelId: result.kennel.id },
     token,
     refreshToken,
   });
@@ -119,6 +143,12 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     data: { lastLogin: new Date() },
   });
 
+  // Find user's kennel
+  const kennel = await prisma.kennel.findUnique({
+    where: { breederId: user.id },
+    select: { id: true },
+  });
+
   // Generate tokens
   const token = generateToken({
     userId: user.id,
@@ -142,6 +172,7 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
       phone: user.phone,
       address: user.address,
       city: user.city,
+      kennelId: kennel?.id,
     },
     token,
     refreshToken,
@@ -214,7 +245,12 @@ export const getCurrentUser = asyncHandler(async (req: Request, res: Response) =
     return res.status(404).json({ error: 'User not found' });
   }
 
-  res.json({ user });
+  const kennel = await prisma.kennel.findUnique({
+    where: { breederId: user.id },
+    select: { id: true },
+  });
+
+  res.json({ user: { ...user, kennelId: kennel?.id } });
 });
 
 // Forgot password

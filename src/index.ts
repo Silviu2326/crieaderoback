@@ -54,24 +54,33 @@ app.use(cors({
     'http://localhost:5178',
     'http://localhost:5179',
     'http://localhost:5180',
+    'http://localhost:8081',
+    'http://localhost:8082',
+    'http://localhost:8083',
+    'http://localhost:19006',
+    'http://localhost:19007',
+    'http://localhost:3002',
   ],
   credentials: true,
 }));
 
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 1 * 60 * 1000, // 1 minute
-  max: 100, // Limit each IP to 100 requests per windowMs
-  message: { error: 'Too many requests, please try again later.' },
-});
-app.use(limiter);
+// Rate limiting (solo en produccion)
+if (process.env.NODE_ENV === 'production') {
+  const limiter = rateLimit({
+    windowMs: 1 * 60 * 1000,
+    max: 100,
+    message: { error: 'Too many requests, please try again later.' },
+  });
+  app.use(limiter);
+}
 
-// Stricter rate limit for auth endpoints
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 50, // 50 attempts per 15 minutes (development-friendly)
-  message: { error: 'Too many login attempts, please try again later.' },
-});
+const authLimiter = process.env.NODE_ENV === 'production'
+  ? rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 50,
+      message: { error: 'Too many login attempts, please try again later.' },
+    })
+  : (req: any, res: any, next: any) => next();
 
 // Body parsing
 app.use(express.json({ limit: '10mb' }));

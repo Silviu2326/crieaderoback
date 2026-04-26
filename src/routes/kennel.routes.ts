@@ -7,7 +7,7 @@ import {
   updateKennel,
   toggleKennelStatus,
   getKennelStats,
-  getMyKennels,
+  getMyKennel,
 } from '../controllers/kennel.controller';
 import { authenticate, authorize } from '../middleware/auth';
 
@@ -15,7 +15,7 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get('/my-kennels', authorize('MANAGER', 'BREEDER'), getMyKennels);
+router.get('/my-kennel', authorize('MANAGER', 'BREEDER'), getMyKennel);
 router.get('/', listKennels);
 router.get('/:id/stats', getKennelStats);
 router.get('/:id', getKennel);

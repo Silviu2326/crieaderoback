@@ -21,18 +21,12 @@ export const listRecipes = asyncHandler(async (req: Request, res: Response) => {
 
   // Access control
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    const myKennelIds = myKennels.map((k) => k.id);
-
-    if (kennelId && !myKennelIds.includes(kennelId as string)) {
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
-
     if (!kennelId) {
-      where.kennelId = { in: myKennelIds };
+      where.kennelId = user.kennelId;
     }
   } else if (user.role === 'VETERINARIAN') {
     const vet = await prisma.veterinarian.findUnique({
@@ -89,11 +83,7 @@ export const getRecipe = asyncHandler(async (req: Request, res: Response) => {
   }
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    if (!myKennels.some((k) => k.id === recipe.kennelId)) {
+    if (user.kennelId !== recipe.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
   }
@@ -110,11 +100,8 @@ export const createRecipe = asyncHandler(async (req: Request, res: Response) => 
   }
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    if (!myKennels.some((k) => k.id === kennelId)) {
+    const resolvedKennelId = kennelId || user.kennelId;
+    if (resolvedKennelId !== user.kennelId) {
       return res.status(403).json({ error: 'Access denied to this kennel' });
     }
   }
@@ -238,11 +225,7 @@ export const calculateRecipeCost = asyncHandler(async (req: Request, res: Respon
   }
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    if (!myKennels.some((k) => k.id === recipe.kennelId)) {
+    if (user.kennelId !== recipe.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
   }

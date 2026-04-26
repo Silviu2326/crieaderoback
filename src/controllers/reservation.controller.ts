@@ -25,18 +25,12 @@ export const listReservations = asyncHandler(async (req: Request, res: Response)
 
   // Breeders see reservations from their kennels
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    const myKennelIds = myKennels.map(k => k.id);
-
-    if (kennelId && !myKennelIds.includes(kennelId as string)) {
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
-
     if (!kennelId) {
-      where.kennelId = { in: myKennelIds };
+      where.kennelId = user.kennelId;
     }
   }
 
@@ -185,11 +179,12 @@ export const createReservation = asyncHandler(async (req: Request, res: Response
 
   // Breeders creating reservation for customer
   if (user.role === 'BREEDER') {
+    const resolvedKennelId = kennelId || user.kennelId;
     const kennel = await prisma.kennel.findUnique({
-      where: { id: kennelId },
+      where: { id: resolvedKennelId },
     });
     if (!kennel || kennel.breederId !== user.id) {
-      return res.status(403).json({ error: 'Access denied' });
+      return res.status(403).json({ error: 'Access denied to this kennel' });
     }
   }
 

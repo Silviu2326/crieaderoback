@@ -6,8 +6,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 async function checkKennelAccess(user: any, kennelId: string) {
   if (user.role === 'MANAGER') return true;
   if (user.role === 'BREEDER') {
-    const kennel = await prisma.kennel.findUnique({ where: { id: kennelId }, select: { breederId: true } });
-    return kennel?.breederId === user.id;
+    return kennelId === user.kennelId;
   }
   return false;
 }
@@ -23,12 +22,13 @@ export const listShows = asyncHandler(async (req: Request, res: Response) => {
   if (status) where.status = status as string;
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({ where: { breederId: user.id }, select: { id: true } });
-    const myKennelIds = myKennels.map(k => k.id);
-    if (kennelId && !myKennelIds.includes(kennelId as string)) {
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
-    if (!kennelId) where.kennelId = { in: myKennelIds };
+    if (!kennelId) {
+      where.kennelId = user.kennelId;
+    }
   }
 
   const shows = await prisma.showEvent.findMany({
@@ -131,10 +131,13 @@ export const listShowDogs = asyncHandler(async (req: Request, res: Response) => 
   if (kennelId) where.kennelId = kennelId as string;
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({ where: { breederId: user.id }, select: { id: true } });
-    const myKennelIds = myKennels.map(k => k.id);
-    if (kennelId && !myKennelIds.includes(kennelId as string)) return res.status(403).json({ error: 'Access denied' });
-    if (!kennelId) where.kennelId = { in: myKennelIds };
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (!kennelId) {
+      where.kennelId = user.kennelId;
+    }
   }
 
   const showDogs = await prisma.showDog.findMany({
@@ -158,10 +161,13 @@ export const listAllShowDogs = asyncHandler(async (req: Request, res: Response) 
   if (kennelId) where.kennelId = kennelId as string;
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({ where: { breederId: user.id }, select: { id: true } });
-    const myKennelIds = myKennels.map(k => k.id);
-    if (kennelId && !myKennelIds.includes(kennelId as string)) return res.status(403).json({ error: 'Access denied' });
-    if (!kennelId) where.kennelId = { in: myKennelIds };
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (!kennelId) {
+      where.kennelId = user.kennelId;
+    }
   }
 
   const showDogs = await prisma.showDog.findMany({
@@ -235,10 +241,13 @@ export const listShowResults = asyncHandler(async (req: Request, res: Response) 
   if (kennelId) where.kennelId = kennelId as string;
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({ where: { breederId: user.id }, select: { id: true } });
-    const myKennelIds = myKennels.map(k => k.id);
-    if (kennelId && !myKennelIds.includes(kennelId as string)) return res.status(403).json({ error: 'Access denied' });
-    if (!kennelId) where.kennelId = { in: myKennelIds };
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (!kennelId) {
+      where.kennelId = user.kennelId;
+    }
   }
 
   const results = await prisma.showResult.findMany({
@@ -262,10 +271,13 @@ export const listAllShowResults = asyncHandler(async (req: Request, res: Respons
   if (kennelId) where.kennelId = kennelId as string;
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({ where: { breederId: user.id }, select: { id: true } });
-    const myKennelIds = myKennels.map(k => k.id);
-    if (kennelId && !myKennelIds.includes(kennelId as string)) return res.status(403).json({ error: 'Access denied' });
-    if (!kennelId) where.kennelId = { in: myKennelIds };
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (!kennelId) {
+      where.kennelId = user.kennelId;
+    }
   }
 
   const results = await prisma.showResult.findMany({
@@ -339,10 +351,13 @@ export const listShowBudget = asyncHandler(async (req: Request, res: Response) =
   if (kennelId) where.kennelId = kennelId as string;
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({ where: { breederId: user.id }, select: { id: true } });
-    const myKennelIds = myKennels.map(k => k.id);
-    if (kennelId && !myKennelIds.includes(kennelId as string)) return res.status(403).json({ error: 'Access denied' });
-    if (!kennelId) where.kennelId = { in: myKennelIds };
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (!kennelId) {
+      where.kennelId = user.kennelId;
+    }
   }
 
   const budgetItems = await prisma.showBudgetItem.findMany({
@@ -363,10 +378,13 @@ export const listAllShowBudget = asyncHandler(async (req: Request, res: Response
   if (kennelId) where.kennelId = kennelId as string;
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({ where: { breederId: user.id }, select: { id: true } });
-    const myKennelIds = myKennels.map(k => k.id);
-    if (kennelId && !myKennelIds.includes(kennelId as string)) return res.status(403).json({ error: 'Access denied' });
-    if (!kennelId) where.kennelId = { in: myKennelIds };
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+    if (!kennelId) {
+      where.kennelId = user.kennelId;
+    }
   }
 
   const budgetItems = await prisma.showBudgetItem.findMany({

@@ -6,8 +6,7 @@ import { asyncHandler } from '../middleware/errorHandler';
 async function checkKennelAccess(user: any, kennelId: string) {
   if (user.role === 'MANAGER') return true;
   if (user.role === 'BREEDER') {
-    const kennel = await prisma.kennel.findUnique({ where: { id: kennelId }, select: { breederId: true } });
-    return kennel?.breederId === user.id;
+    return kennelId === user.kennelId;
   }
   return false;
 }
@@ -22,12 +21,13 @@ export const getGeneticTests = asyncHandler(async (req: Request, res: Response) 
   if (kennelId) where.kennelId = kennelId as string;
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({ where: { breederId: user.id }, select: { id: true } });
-    const myKennelIds = myKennels.map((k: any) => k.id);
-    if (kennelId && !myKennelIds.includes(kennelId as string)) {
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
-    if (!kennelId) where.kennelId = { in: myKennelIds };
+    if (!kennelId) {
+      where.kennelId = user.kennelId;
+    }
   }
 
   const tests = await prisma.geneticTest.findMany({
@@ -51,12 +51,13 @@ export const getBreedingPlans = asyncHandler(async (req: Request, res: Response)
   if (kennelId) where.kennelId = kennelId as string;
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({ where: { breederId: user.id }, select: { id: true } });
-    const myKennelIds = myKennels.map((k: any) => k.id);
-    if (kennelId && !myKennelIds.includes(kennelId as string)) {
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
-    if (!kennelId) where.kennelId = { in: myKennelIds };
+    if (!kennelId) {
+      where.kennelId = user.kennelId;
+    }
   }
 
   const plans = await prisma.breedingPlan.findMany({

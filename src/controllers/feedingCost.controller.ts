@@ -12,11 +12,7 @@ export const getFeedingCosts = asyncHandler(async (req: Request, res: Response) 
   }
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    if (!myKennels.some((k) => k.id === kennelId as string)) {
+    if (user.kennelId !== kennelId as string) {
       return res.status(403).json({ error: 'Access denied' });
     }
   }
@@ -131,11 +127,7 @@ export const getFeedingCostSummary = asyncHandler(async (req: Request, res: Resp
   }
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    if (!myKennels.some((k) => k.id === kennelId as string)) {
+    if (user.kennelId !== kennelId as string) {
       return res.status(403).json({ error: 'Access denied' });
     }
   }

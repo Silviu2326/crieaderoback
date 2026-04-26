@@ -29,17 +29,11 @@ export const listIntolerances = asyncHandler(async (req: Request, res: Response)
   }
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    const myKennelIds = myKennels.map((k) => k.id);
-
-    if (kennelId && !myKennelIds.includes(kennelId as string)) {
+    const effectiveKennelId = (kennelId as string) || user.kennelId!;
+    if (effectiveKennelId !== user.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
-
-    kennelIds = kennelId ? [kennelId as string] : myKennelIds;
+    kennelIds = [effectiveKennelId];
   } else if (user.role === 'VETERINARIAN') {
     const vet = await prisma.veterinarian.findUnique({
       where: { userId: user.id },
@@ -91,11 +85,7 @@ export const getIntolerance = asyncHandler(async (req: Request, res: Response) =
   }
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    if (!myKennels.some((k) => k.id === intolerance.dog.kennelId)) {
+    if (user.kennelId !== intolerance.dog.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
   }
@@ -212,11 +202,7 @@ export const listReactions = asyncHandler(async (req: Request, res: Response) =>
   }
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    if (!myKennels.some((k) => k.id === intolerance.dog.kennelId)) {
+    if (user.kennelId !== intolerance.dog.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
   }

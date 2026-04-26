@@ -237,21 +237,12 @@ export const getSalesReport = asyncHandler(async (req: Request, res: Response) =
 
   if (kennelId) {
     // Access control
-    if (user.role === 'BREEDER') {
-      const kennel = await prisma.kennel.findUnique({
-        where: { id: kennelId as string },
-      });
-      if (!kennel || kennel.breederId !== user.id) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
+    if (user.role === 'BREEDER' && kennelId !== user.kennelId) {
+      return res.status(403).json({ error: 'Access denied' });
     }
     where.kennelId = kennelId as string;
   } else if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    where.kennelId = { in: myKennels.map((k) => k.id) };
+    where.kennelId = user.kennelId;
   }
 
   const [totalSales, salesByMonth, topCustomers, recentSales] = await Promise.all([
@@ -314,21 +305,12 @@ export const getBreedReport = asyncHandler(async (req: Request, res: Response) =
   const where: any = {};
 
   if (kennelId) {
-    if (user.role === 'BREEDER') {
-      const kennel = await prisma.kennel.findUnique({
-        where: { id: kennelId as string },
-      });
-      if (!kennel || kennel.breederId !== user.id) {
-        return res.status(403).json({ error: 'Access denied' });
-      }
+    if (user.role === 'BREEDER' && kennelId !== user.kennelId) {
+      return res.status(403).json({ error: 'Access denied' });
     }
     where.kennelId = kennelId as string;
   } else if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    where.kennelId = { in: myKennels.map((k) => k.id) };
+    where.kennelId = user.kennelId;
   }
 
   const breeds = await prisma.dog.groupBy({

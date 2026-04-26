@@ -24,18 +24,12 @@ export const listNutritionPlans = asyncHandler(async (req: Request, res: Respons
 
   // Access control
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    const myKennelIds = myKennels.map(k => k.id);
-
-    if (kennelId && !myKennelIds.includes(kennelId as string)) {
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
-
     if (!kennelId) {
-      where.kennelId = { in: myKennelIds };
+      where.kennelId = user.kennelId;
     }
   } else if (user.role === 'VETERINARIAN') {
     const vet = await prisma.veterinarian.findUnique({
@@ -272,18 +266,12 @@ export const listDogNutritions = asyncHandler(async (req: Request, res: Response
 
   // Access control via dog kennel
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    const myKennelIds = myKennels.map(k => k.id);
-
-    if (kennelId && !myKennelIds.includes(kennelId as string)) {
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
-
     if (!kennelId) {
-      dogWhere.kennelId = { in: myKennelIds };
+      dogWhere.kennelId = user.kennelId;
     }
   } else if (user.role === 'VETERINARIAN') {
     const vet = await prisma.veterinarian.findUnique({
@@ -446,18 +434,12 @@ export const listNutritionLogs = asyncHandler(async (req: Request, res: Response
 
   // Access control
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    const myKennelIds = myKennels.map(k => k.id);
-
-    if (kennelId && !myKennelIds.includes(kennelId as string)) {
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
-
     if (!kennelId) {
-      dogWhere.kennelId = { in: myKennelIds };
+      dogWhere.kennelId = user.kennelId;
     }
   } else if (user.role === 'VETERINARIAN') {
     const vet = await prisma.veterinarian.findUnique({
@@ -597,18 +579,12 @@ export const listSupplements = asyncHandler(async (req: Request, res: Response) 
 
   // Access control
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({
-      where: { breederId: user.id },
-      select: { id: true },
-    });
-    const myKennelIds = myKennels.map(k => k.id);
-
-    if (kennelId && !myKennelIds.includes(kennelId as string)) {
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
-
     if (!kennelId) {
-      dogWhere.kennelId = { in: myKennelIds };
+      dogWhere.kennelId = user.kennelId;
     }
   } else if (user.role === 'VETERINARIAN') {
     const vet = await prisma.veterinarian.findUnique({

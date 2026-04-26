@@ -47,12 +47,19 @@ export const authenticate = async (
       return res.status(403).json({ error: 'Account is inactive.' });
     }
 
+    // Find user's kennel (1:1 relationship)
+    const kennel = await prisma.kennel.findUnique({
+      where: { breederId: user.id },
+      select: { id: true },
+    });
+
     req.user = {
       id: user.id,
       email: user.email,
       role: user.role,
       firstName: user.firstName,
       lastName: user.lastName,
+      kennelId: kennel?.id,
     };
 
     next();
@@ -109,12 +116,18 @@ export const optionalAuth = async (
     });
 
     if (user && user.status === 'ACTIVE') {
+      const kennel = await prisma.kennel.findUnique({
+        where: { breederId: user.id },
+        select: { id: true },
+      });
+
       req.user = {
         id: user.id,
         email: user.email,
         role: user.role,
         firstName: user.firstName,
         lastName: user.lastName,
+        kennelId: kennel?.id,
       };
     }
 

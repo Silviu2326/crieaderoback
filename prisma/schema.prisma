@@ -24,7 +24,7 @@ model User {
   lastLogin DateTime?
 
   // Relations
-  kennels          Kennel[]
+  kennel           Kennel?
   veterinarian     Veterinarian?
   customer         Customer?
   auditLogs        AuditLog[]
@@ -60,7 +60,7 @@ model Kennel {
   updatedAt   DateTime @updatedAt
 
   // Relations
-  breederId           String
+  breederId           String                  @unique
   breeder             User                    @relation(fields: [breederId], references: [id])
   dogs                Dog[]
   litters             Litter[]

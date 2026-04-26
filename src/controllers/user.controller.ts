@@ -58,7 +58,7 @@ export const getUser = asyncHandler(async (req: Request, res: Response) => {
       phone: true,
       createdAt: true,
       lastLogin: true,
-      kennels: {
+      kennel: {
         select: {
           id: true,
           name: true,
@@ -129,11 +129,32 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 
-  // If breeder, assign to kennels
-  if (role === 'BREEDER' && kennelIds?.length) {
-    await prisma.kennel.updateMany({
-      where: { id: { in: kennelIds } },
-      data: { breederId: user.id },
+  // If breeder, create a kennel automatically
+  if (role === 'BREEDER') {
+    const baseSlug = `${firstName}-criadero`
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    let slug = baseSlug;
+    let counter = 1;
+    let existingSlug = await prisma.kennel.findUnique({ where: { slug } });
+    while (existingSlug) {
+      slug = `${baseSlug}-${counter}`;
+      existingSlug = await prisma.kennel.findUnique({ where: { slug } });
+      counter++;
+    }
+
+    await prisma.kennel.create({
+      data: {
+        name: `Criadero de ${firstName}`,
+        slug,
+        breederId: user.id,
+        status: 'ACTIVE',
+        isPublic: true,
+      },
     });
   }
 
@@ -170,7 +191,7 @@ export const createUser = asyncHandler(async (req: Request, res: Response) => {
 // Update user
 export const updateUser = asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { firstName, lastName, phone, status, kennelIds, vetData } = req.body;
+  const { firstName, lastName, phone, status, vetData } = req.body;
 
   const user = await prisma.user.findUnique({
     where: { id },
@@ -202,24 +223,6 @@ export const updateUser = asyncHandler(async (req: Request, res: Response) => {
     },
   });
 
-  // Update kennel assignments for breeder
-  if (user.role === 'BREEDER' && kennelIds) {
-    // Remove from all kennels first
-    await prisma.kennel.updateMany({
-      where: { breederId: user.id },
-      // @ts-ignore
-      data: { breederId: null },
-    });
-
-    // Assign to new kennels
-    if (kennelIds.length) {
-      await prisma.kennel.updateMany({
-        where: { id: { in: kennelIds } },
-        data: { breederId: user.id },
-      });
-    }
-  }
-
   // Update vet info
   if (user.role === 'VETERINARIAN' && user.veterinarian) {
     if (vetData) {
@@ -230,23 +233,6 @@ export const updateUser = asyncHandler(async (req: Request, res: Response) => {
           specialization: vetData.specialization,
         },
       });
-    }
-
-    if (kennelIds) {
-      // Remove all current assignments
-      await prisma.kennelVet.deleteMany({
-        where: { vetId: user.veterinarian.id },
-      });
-
-      // Add new assignments
-      if (kennelIds.length) {
-        await prisma.kennelVet.createMany({
-          data: kennelIds.map((kennelId: string) => ({
-            kennelId,
-            vetId: user.veterinarian!.id,
-          })),
-        });
-      }
     }
   }
 

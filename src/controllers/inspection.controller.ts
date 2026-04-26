@@ -112,12 +112,13 @@ export const listInspections = asyncHandler(async (req: Request, res: Response) 
   }
 
   if (user.role === 'BREEDER') {
-    const myKennels = await prisma.kennel.findMany({ where: { breederId: user.id }, select: { id: true } });
-    const myKennelIds = myKennels.map((k) => k.id);
-    if (kennelId && !myKennelIds.includes(kennelId as string)) {
+    const effectiveKennelId = (kennelId as string) || user.kennelId;
+    if (effectiveKennelId !== user.kennelId) {
       return res.status(403).json({ error: 'Access denied' });
     }
-    if (!kennelId) where.kennelId = { in: myKennelIds };
+    if (!kennelId) {
+      where.kennelId = user.kennelId;
+    }
   } else if (user.role === 'VETERINARIAN') {
     const vet = await prisma.veterinarian.findUnique({ where: { userId: user.id }, include: { kennels: { select: { kennelId: true } } } });
     const assignedKennelIds = vet?.kennels.map((k) => k.kennelId) || [];
