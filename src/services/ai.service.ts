@@ -3,10 +3,10 @@ import type { AIHealthResponse, DogContext } from '../types/assistant';
 
 const openai = new OpenAI({
   apiKey: process.env.KIMI_API_KEY || process.env.OPENAI_API_KEY,
-  baseURL: process.env.KIMI_BASE_URL || 'https://api.kimi.com/coding/',
+  baseURL: process.env.KIMI_BASE_URL || 'https://api.kimi.com/coding/v1',
 });
 
-const MODEL = process.env.KIMI_MODEL || process.env.OPENAI_MODEL || 'kimi-latest';
+const MODEL = process.env.KIMI_MODEL || 'kimi-for-coding';
 
 const SYSTEM_PROMPT = `Eres el "Asistente de Salud Petwelly IA", un asistente orientativo para criadores profesionales de perros. Tu funcion es proporcionar informacion de salud canina general, orientativa y educativa.
 
