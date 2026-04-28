@@ -144,6 +144,60 @@ export const getDocument = asyncHandler(async (req: Request, res: Response) => {
   res.json({ document });
 });
 
+// Create document (external URL, no file upload)
+export const createDocument = asyncHandler(async (req: Request, res: Response) => {
+  const user = req.user!;
+  const {
+    name,
+    type,
+    description,
+    url,
+    dogId,
+    customerId,
+    kennelId,
+    tags,
+    issuedDate,
+    expiryDate,
+  } = req.body;
+
+  // Check access to kennel
+  if (user.role === 'BREEDER') {
+    const resolvedKennelId = kennelId || user.kennelId;
+    const kennel = await prisma.kennel.findUnique({
+      where: { id: resolvedKennelId },
+    });
+    if (!kennel || kennel.breederId !== user.id) {
+      return res.status(403).json({ error: 'Access denied to this kennel' });
+    }
+  }
+
+  const document = await prisma.document.create({
+    data: {
+      name: name || 'Documento sin nombre',
+      type: type || 'OTHER',
+      description,
+      url,
+      kennelId,
+      dogId,
+      customerId,
+      tags,
+      issuedDate: issuedDate ? new Date(issuedDate) : null,
+      expiryDate: expiryDate ? new Date(expiryDate) : null,
+      uploadedBy: user.id,
+    },
+    include: {
+      dog: {
+        select: { id: true, name: true },
+      },
+      customer: {
+        select: { id: true, firstName: true, lastName: true },
+      },
+    },
+  });
+
+  res.status(201).json({ document });
+});
+
 // Upload document
 export const uploadDocument = asyncHandler(async (req: Request, res: Response) => {
   const user = req.user!;

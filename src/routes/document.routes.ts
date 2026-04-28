@@ -4,6 +4,7 @@ import { authenticate } from '../middleware/auth';
 import {
   listDocuments,
   getDocument,
+  createDocument,
   uploadDocument,
   updateDocument,
   deleteDocument,
@@ -26,6 +27,7 @@ router.use(authenticate);
 
 // Document routes
 router.get('/', listDocuments);
+router.post('/', createDocument);
 router.get('/templates', listTemplates);
 router.post('/templates', createTemplate);
 router.put('/templates/:id', updateTemplate);
