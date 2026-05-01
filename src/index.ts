@@ -36,6 +36,7 @@ import { intoleranceRouter } from './routes/intolerance.routes';
 import { feedingCostRouter } from './routes/feedingCost.routes';
 import { clientReportRouter } from './routes/clientReport.routes';
 import { assistantRouter } from './routes/assistant.routes';
+import { activityRouter } from './routes/activity.routes';
 
 dotenv.config();
 
@@ -124,6 +125,7 @@ app.use('/api/nutrition/intolerances', intoleranceRouter);
 app.use('/api/nutrition/feeding-costs', feedingCostRouter);
 app.use('/api/reports/client', clientReportRouter);
 app.use('/api/assistant', assistantRouter);
+app.use('/api/activity', activityRouter);
 app.use('/api/public', publicRouter);
 
 // Error handling

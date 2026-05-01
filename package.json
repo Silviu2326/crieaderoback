@@ -10,7 +10,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "ts-node prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "generate:domains": "ts-node scripts/generate-domains.ts"
   },
   "keywords": [
     "erp",
@@ -38,6 +39,7 @@
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^6.9.9",
     "openai": "^6.34.0",
+    "react-native-calendars": "^1.1314.0",
     "uuid": "^9.0.1"
   },
   "devDependencies": {
